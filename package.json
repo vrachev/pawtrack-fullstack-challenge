@@ -1,0 +1,11 @@
+{
+  "name": "pawtrack-fullstack-challenge",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "npx serve client -l 3000 --cors",
+    "dev": "echo 'Run dev:server and dev:client in separate terminals'",
+    "install:all": "cd server && npm install"
+  }
+}

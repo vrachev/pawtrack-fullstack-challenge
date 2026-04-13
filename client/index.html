@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PawTrack — Booking Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1>PawTrack</h1>
+      <p class="subtitle">Booking Dashboard</p>
+    </div>
+    <div class="tenant-info" id="tenant-info"></div>
+  </header>
+
+  <main>
+    <section class="filters">
+      <div class="filter-group">
+        <label for="date-filter">Date</label>
+        <input type="date" id="date-filter">
+      </div>
+      <div class="filter-group">
+        <label for="status-filter">Status</label>
+        <select id="status-filter">
+          <option value="">All statuses</option>
+          <option value="requested">Requested</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+    </section>
+
+    <section class="bookings-container">
+      <div class="bookings-header">
+        <h2>Bookings</h2>
+        <button id="new-booking-btn" class="btn btn-primary">+ New Booking</button>
+      </div>
+
+      <div id="loading-indicator" class="loading" style="display: none;">Loading...</div>
+      <div id="error-message" class="error" style="display: none;"></div>
+      <div id="bookings-list" class="bookings-list"></div>
+
+      <div class="pagination" id="pagination"></div>
+    </section>
+
+    <!-- New Booking Modal -->
+    <div id="booking-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <h2>New Booking</h2>
+        <form id="booking-form">
+          <div class="form-group">
+            <label for="pet-select">Pet</label>
+            <select id="pet-select" required>
+              <option value="">Select a pet...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sitter-select">Sitter</label>
+            <select id="sitter-select" required>
+              <option value="">Select a sitter...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="booking-date">Date</label>
+            <input type="date" id="booking-date" required>
+          </div>
+          <div class="form-group">
+            <label for="start-time">Start Time</label>
+            <input type="time" id="start-time" required>
+          </div>
+          <div class="form-group">
+            <label for="end-time">End Time</label>
+            <input type="time" id="end-time" required>
+          </div>
+          <div class="form-group">
+            <label for="booking-notes">Notes</label>
+            <textarea id="booking-notes" rows="3" placeholder="Special instructions..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="cancel-booking" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Booking</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
