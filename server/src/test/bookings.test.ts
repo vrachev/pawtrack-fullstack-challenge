@@ -160,3 +160,82 @@ test('PATCH /api/bookings/:id/status lets an admin update a cross-tenant booking
   assert.equal(body.booking.id, 'booking_007');
   assert.equal(body.booking.status, 'in_progress');
 });
+
+test('POST /api/bookings rejects a cross-tenant petId and creates no booking', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/bookings',
+    headers: { 'x-user-id': 'user_staff_portland' },
+    payload: {
+      petId: 'pet_006',
+      sitterId: 'sitter_001',
+      scheduledDate: '2027-01-15T14:00:00-08:00',
+      startTime: '14:00',
+      endTime: '15:00',
+      notes: '',
+    },
+  });
+  assert.equal(res.statusCode, 400);
+  const body = res.json();
+  assert.equal(body.success, false);
+  assert.match(body.error, /pet|sitter|tenant/i);
+
+  const listRes = await app.inject({
+    method: 'GET',
+    url: '/api/bookings?limit=50',
+    headers: { 'x-user-id': 'user_admin_portland' },
+  });
+  assert.equal(listRes.json().total, 10, 'denied POST must not create a booking');
+});
+
+test('POST /api/bookings rejects a cross-tenant sitterId and creates no booking', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/bookings',
+    headers: { 'x-user-id': 'user_staff_portland' },
+    payload: {
+      petId: 'pet_001',
+      sitterId: 'sitter_003',
+      scheduledDate: '2027-01-15T14:00:00-08:00',
+      startTime: '14:00',
+      endTime: '15:00',
+      notes: '',
+    },
+  });
+  assert.equal(res.statusCode, 400);
+  const body = res.json();
+  assert.equal(body.success, false);
+  assert.match(body.error, /pet|sitter|tenant/i);
+
+  const listRes = await app.inject({
+    method: 'GET',
+    url: '/api/bookings?limit=50',
+    headers: { 'x-user-id': 'user_admin_portland' },
+  });
+  assert.equal(listRes.json().total, 10, 'denied POST must not create a booking');
+});
+
+test('POST /api/bookings succeeds for same-tenant pet and sitter', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/bookings',
+    headers: { 'x-user-id': 'user_staff_portland' },
+    payload: {
+      petId: 'pet_001',
+      sitterId: 'sitter_002',
+      scheduledDate: '2027-01-15T14:00:00-08:00',
+      startTime: '14:00',
+      endTime: '15:00',
+      notes: '',
+    },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json();
+  assert.equal(body.success, true);
+  assert.equal(body.data.tenantId, 'tenant_portland');
+  assert.equal(body.data.petId, 'pet_001');
+  assert.equal(body.data.sitterId, 'sitter_002');
+});

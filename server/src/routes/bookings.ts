@@ -80,7 +80,7 @@ export function bookingRoutes(app: FastifyInstance): void {
 
       return reply.code(200).send({ success: true, data: booking });
     } catch (error: any) {
-      return reply.code(200).send({ success: false, error: error.message });
+      return reply.code(400).send({ success: false, error: error.message });
     }
   });
 

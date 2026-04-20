@@ -69,6 +69,12 @@ export class BookingService {
   public async createBooking(params: CreateBookingParams): Promise<Booking> {
     const { tenantId, petId, sitterId, scheduledDate, startTime, endTime, notes, createdBy } = params;
 
+    const pet = store.getPet(petId);
+    const sitter = store.getSitter(sitterId);
+    if (!pet || pet.tenantId !== tenantId || !sitter || sitter.tenantId !== tenantId) {
+      throw new Error('Invalid pet or sitter for this tenant');
+    }
+
     // Check for overlapping bookings with the same sitter
     const existingBookings = store.getAllBookings().filter(
       b => b.sitterId === sitterId && b.status !== 'cancelled',
