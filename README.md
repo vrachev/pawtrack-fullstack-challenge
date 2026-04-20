@@ -73,11 +73,11 @@ The server is a **TypeScript/Fastify** API with an in-memory data store (no data
 curl http://localhost:3001/health
 
 # List bookings for Portland tenant
-curl -H "X-Tenant-Id: tenant_portland" -H "X-User-Id: user_staff_portland" \
+curl -H "X-User-Id: user_staff_portland" \
   http://localhost:3001/api/bookings
 
 # List pets
-curl -H "X-Tenant-Id: tenant_portland" -H "X-User-Id: user_staff_portland" \
+curl -H "X-User-Id: user_staff_portland" \
   http://localhost:3001/api/pets
 ```
 

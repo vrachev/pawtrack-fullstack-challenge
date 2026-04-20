@@ -5,9 +5,7 @@ const API_BASE = 'http://localhost:3001';
 
 // Simulated auth context — in production this would come from a login flow
 const AUTH_HEADERS = {
-  'X-Tenant-Id': 'tenant_austin',
   'X-User-Id': 'user_admin_austin',
-  'X-User-Role': 'admin',
   'Content-Type': 'application/json',
 };
 

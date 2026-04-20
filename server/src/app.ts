@@ -11,7 +11,7 @@ export function buildApp(opts: { logger?: boolean } = {}): FastifyInstance {
   app.register(cors, {
     origin: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'X-Tenant-Id', 'X-User-Id', 'X-User-Role'],
+    allowedHeaders: ['Content-Type', 'X-User-Id'],
   });
 
   app.addHook('onRequest', async (request, reply) => {
