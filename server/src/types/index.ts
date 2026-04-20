@@ -41,10 +41,18 @@ export interface Sitter {
   phone: string;
 }
 
+export type UserRole = 'admin' | 'staff' | 'sitter';
+
+export interface User {
+  id: string;
+  tenantId: string;
+  role: UserRole;
+}
+
 export interface AuthContext {
   tenantId: string;
   userId: string;
-  role: 'admin' | 'staff' | 'sitter';
+  role: UserRole;
 }
 
 export interface PaginatedResult<T> {

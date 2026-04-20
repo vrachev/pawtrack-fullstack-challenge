@@ -1,9 +1,24 @@
-import type { Tenant, Pet, Booking, Sitter } from '../types/index.js';
+import type { Tenant, Pet, Booking, Sitter, User } from '../types/index.js';
 
 export const tenants: Tenant[] = [
   { id: 'tenant_portland', name: 'PawTrack Portland', timezone: 'America/Los_Angeles' },
   { id: 'tenant_seattle', name: 'PawTrack Seattle', timezone: 'America/Los_Angeles' },
   { id: 'tenant_austin', name: 'PawTrack Austin', timezone: 'America/Chicago' },
+];
+
+export const users: User[] = [
+  { id: 'user_admin_portland', tenantId: 'tenant_portland', role: 'admin' },
+  { id: 'user_staff_portland', tenantId: 'tenant_portland', role: 'staff' },
+  { id: 'user_admin_seattle', tenantId: 'tenant_seattle', role: 'admin' },
+  { id: 'user_staff_seattle', tenantId: 'tenant_seattle', role: 'staff' },
+  { id: 'user_admin_austin', tenantId: 'tenant_austin', role: 'admin' },
+  { id: 'user_staff_austin', tenantId: 'tenant_austin', role: 'staff' },
+  { id: 'sitter_001', tenantId: 'tenant_portland', role: 'sitter' },
+  { id: 'sitter_002', tenantId: 'tenant_portland', role: 'sitter' },
+  { id: 'sitter_003', tenantId: 'tenant_seattle', role: 'sitter' },
+  { id: 'sitter_004', tenantId: 'tenant_seattle', role: 'sitter' },
+  { id: 'sitter_005', tenantId: 'tenant_austin', role: 'sitter' },
+  { id: 'sitter_006', tenantId: 'tenant_austin', role: 'sitter' },
 ];
 
 export const sitters: Sitter[] = [

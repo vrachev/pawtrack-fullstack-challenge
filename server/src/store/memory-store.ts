@@ -1,11 +1,18 @@
-import type { Booking, Pet, Sitter, Tenant } from '../types/index.js';
-import { tenants as seedTenants, pets as seedPets, bookings as seedBookings, sitters as seedSitters } from './seed.js';
+import type { Booking, Pet, Sitter, Tenant, User } from '../types/index.js';
+import {
+  tenants as seedTenants,
+  pets as seedPets,
+  bookings as seedBookings,
+  sitters as seedSitters,
+  users as seedUsers,
+} from './seed.js';
 
 class MemoryStore {
   private tenants: Map<string, Tenant> = new Map();
   private pets: Map<string, Pet> = new Map();
   private bookings: Map<string, Booking> = new Map();
   private sitters: Map<string, Sitter> = new Map();
+  private users: Map<string, User> = new Map();
 
   constructor() {
     this.reset();
@@ -16,6 +23,7 @@ class MemoryStore {
     this.pets.clear();
     this.bookings.clear();
     this.sitters.clear();
+    this.users.clear();
 
     for (const tenant of seedTenants) {
       this.tenants.set(tenant.id, { ...tenant });
@@ -29,11 +37,19 @@ class MemoryStore {
     for (const sitter of seedSitters) {
       this.sitters.set(sitter.id, { ...sitter });
     }
+    for (const user of seedUsers) {
+      this.users.set(user.id, { ...user });
+    }
   }
 
   // Tenant operations
   public getTenant(id: string): Tenant | undefined {
     return this.tenants.get(id);
+  }
+
+  // User operations
+  public getUser(id: string): User | undefined {
+    return this.users.get(id);
   }
 
   // Pet operations
