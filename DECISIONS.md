@@ -6,7 +6,8 @@
 - [Critical] There is a race condition with booking creations. Two calls to createBooking can end up both booking the same slot with the sitter (this issue was noted in the readme).
 - [Critical] In the GET /api/bookings route, we allow an admin to override the tenant view, but have no check to determine if the user is actually an admin.
 - [Critical] In authMiddleware, any user can assign themselves an admin role, or impersonate another user by using their user-id, or sign into any tenant they want to.
-- [Critical] Off-by-one pagination bug that led to loss of the first page of bookings. This one took me a bit to figure out when I tried signing in for the Seattle/Austin tenants. This bug made them show 0 bookings since they only had one page.
+- [✅ Critical] Off-by-one pagination bug that led to loss of the first page of bookings. This one took me a bit to figure out when I tried signing in for the Seattle/Austin tenants. This bug made them show 0 bookings since they only had one page. Bug in booking-service.ts where we set the offset to be page * limit (but page starts at 1). So the first offset becomes 5, instead of 0.
+     * Fixed with by subtracting 1 from the page.
 - [Critical] Bookings are fetched in a ton of places in the client side app code. There can be scenariors where multiple fetch requests are being processed, and the last one that returns may not be the most recent one. I think this explains the stale bookings bug in the readme.
 - [Critical] In the GET /api/bookings/:id route, we don't check for tenant ownership, which is something we do in the pets API. This means someone can access any booking from across any tenant.
 - [Critical] The hasOverlap check in createBooking is incredibly brittle and broken. It strips out timezone information (b.scheduledDate.split('T')[0] just returns the date), so a user who passes in a scheduledDate with a different timezone to what is in the db will result in potential double bookings.

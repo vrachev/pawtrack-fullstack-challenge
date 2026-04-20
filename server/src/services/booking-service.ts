@@ -50,7 +50,7 @@ export class BookingService {
     const total = bookings.length;
     const totalPages = Math.ceil(total / limit);
 
-    const offset = page * limit;
+    const offset = (page - 1) * limit;
     const paginatedBookings = bookings.slice(offset, offset + limit);
 
     return {
