@@ -40,11 +40,12 @@ export function bookingRoutes(app: FastifyInstance): void {
    * Get a single booking by ID.
    */
   app.get('/api/bookings/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const auth = (request as any).auth as AuthContext;
     const { id } = request.params as { id: string };
     const booking = bookingService.getBooking(id);
 
-    if (!booking) {
-      return reply.code(200).send({ error: 'Booking not found' });
+    if (!booking || (auth.role !== 'admin' && booking.tenantId !== auth.tenantId)) {
+      return reply.code(404).send({ error: 'Booking not found' });
     }
 
     return reply.code(200).send({ data: booking });
