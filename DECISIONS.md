@@ -4,7 +4,8 @@
 
 ### The below bugs are what I found from looking through the code. I stopped after a while because there are too many, but tried to cover most of the critical ones I saw. After this, I also instruced claude to investigate the codebase and find issues. I've picked some from claude that I think are worth adding here and added them below this list. Claude's audit lives in ./investigations/CLAUDE_AUDIT.md
 - [Critical] There is a race condition with booking creations. Two calls to createBooking can end up both booking the same slot with the sitter (this issue was noted in the readme).
-- [Critical] In the GET /api/bookings route, we allow an admin to override the tenant view, but have no check to determine if the user is actually an admin.
+- [✅ Critical] In the GET /api/bookings route, we allow an admin to override the tenant view, but have no check to determine if the user is actually an admin.
+     * Fixed by ignoring ?tenantId= unless auth.role is 'admin'.
 - [✅ Critical] In authMiddleware, any user can assign themselves an admin role, or impersonate another user by using their user-id, or sign into any tenant they want to.
      * Fixed by reading only X-User-Id and deriving tenantId/role from a new users seed looked up in the store; X-Tenant-Id and X-User-Role headers are now ignored. Added a GET /api/me route so the dashboard (and tests) can observe the real auth context.
 - [✅ Critical] Off-by-one pagination bug that led to loss of the first page of bookings. This one took me a bit to figure out when I tried signing in for the Seattle/Austin tenants. This bug made them show 0 bookings since they only had one page. Bug in booking-service.ts where we set the offset to be page * limit (but page starts at 1). So the first offset becomes 5, instead of 0.

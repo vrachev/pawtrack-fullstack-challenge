@@ -18,7 +18,8 @@ export function bookingRoutes(app: FastifyInstance): void {
     };
 
     // Support tenant override for admin views
-    const tenantId = query.tenantId || auth.tenantId;
+    const tenantId =
+      auth.role === 'admin' && query.tenantId ? query.tenantId : auth.tenantId;
 
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '10', 10);
