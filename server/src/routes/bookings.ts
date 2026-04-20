@@ -93,8 +93,12 @@ export function bookingRoutes(app: FastifyInstance): void {
     const { id } = request.params as { id: string };
     const { status } = request.body as { status: BookingStatus };
 
-    const result = bookingService.updateStatus(id, status, auth.userId);
+    const existing = bookingService.getBooking(id);
+    if (!existing || (auth.role !== 'admin' && existing.tenantId !== auth.tenantId)) {
+      return reply.code(404).send({ error: 'Booking not found' });
+    }
 
+    const result = bookingService.updateStatus(id, status, auth.userId);
     return reply.code(200).send(result);
   });
 }

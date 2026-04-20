@@ -99,3 +99,64 @@ test('GET /api/bookings/:id lets an admin fetch a cross-tenant booking', async (
   assert.equal(body.data.id, 'booking_007');
   assert.equal(body.data.tenantId, 'tenant_seattle');
 });
+
+test('PATCH /api/bookings/:id/status rejects cross-tenant writes and leaves the store unchanged', async () => {
+  const app = buildTestApp();
+  const patchRes = await app.inject({
+    method: 'PATCH',
+    url: '/api/bookings/booking_007/status',
+    headers: { 'x-user-id': 'sitter_001' },
+    payload: { status: 'in_progress' },
+  });
+  assert.equal(patchRes.statusCode, 404);
+  assert.equal(patchRes.json().error, 'Booking not found');
+
+  const getRes = await app.inject({
+    method: 'GET',
+    url: '/api/bookings/booking_007',
+    headers: { 'x-user-id': 'user_admin_portland' },
+  });
+  assert.equal(getRes.statusCode, 200);
+  assert.equal(getRes.json().data.status, 'confirmed', 'cross-tenant PATCH must not mutate the booking');
+});
+
+test('PATCH /api/bookings/:id/status returns 404 for a missing booking', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'PATCH',
+    url: '/api/bookings/nope/status',
+    headers: { 'x-user-id': 'sitter_001' },
+    payload: { status: 'confirmed' },
+  });
+  assert.equal(res.statusCode, 404);
+  assert.equal(res.json().error, 'Booking not found');
+});
+
+test('PATCH /api/bookings/:id/status succeeds for a same-tenant caller', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'PATCH',
+    url: '/api/bookings/booking_002/status',
+    headers: { 'x-user-id': 'user_admin_portland' },
+    payload: { status: 'confirmed' },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json();
+  assert.equal(body.success, true);
+  assert.equal(body.booking.status, 'confirmed');
+});
+
+test('PATCH /api/bookings/:id/status lets an admin update a cross-tenant booking', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'PATCH',
+    url: '/api/bookings/booking_007/status',
+    headers: { 'x-user-id': 'user_admin_portland' },
+    payload: { status: 'in_progress' },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json();
+  assert.equal(body.success, true);
+  assert.equal(body.booking.id, 'booking_007');
+  assert.equal(body.booking.status, 'in_progress');
+});
