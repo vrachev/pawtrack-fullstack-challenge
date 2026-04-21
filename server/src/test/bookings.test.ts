@@ -217,6 +217,36 @@ test('POST /api/bookings rejects a cross-tenant sitterId and creates no booking'
   assert.equal(listRes.json().total, 10, 'denied POST must not create a booking');
 });
 
+test('GET /api/bookings?date filters by tenant-local day (late-night UTC booking)', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'GET',
+    url: '/api/bookings?date=2026-04-08&limit=50',
+    headers: { 'x-user-id': 'user_admin_portland' },
+  });
+  assert.equal(res.statusCode, 200);
+  const ids = res.json().data.map((b: { id: string }) => b.id);
+  assert.ok(
+    ids.includes('booking_006'),
+    'booking_006 at 2026-04-09T06:30:00Z is 2026-04-08 23:30 in Portland and must match date=2026-04-08',
+  );
+});
+
+test('GET /api/bookings?date excludes bookings whose UTC day matches but tenant-local day does not', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'GET',
+    url: '/api/bookings?date=2026-04-09&limit=50',
+    headers: { 'x-user-id': 'user_admin_portland' },
+  });
+  assert.equal(res.statusCode, 200);
+  const ids = res.json().data.map((b: { id: string }) => b.id);
+  assert.ok(
+    !ids.includes('booking_006'),
+    'booking_006 is April 8 in Portland — date=2026-04-09 must not include it',
+  );
+});
+
 test('POST /api/bookings succeeds for same-tenant pet and sitter', async () => {
   const app = buildTestApp();
   const res = await app.inject({

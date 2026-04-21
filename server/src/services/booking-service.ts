@@ -1,4 +1,5 @@
 import { v4 as uuid } from 'uuid';
+import { DateTime } from 'luxon';
 import type { Booking, BookingStatus, PaginatedResult, AuthContext } from '../types/index.js';
 import { VALID_TRANSITIONS } from '../types/index.js';
 import { store } from '../store/memory-store.js';
@@ -33,10 +34,19 @@ export class BookingService {
 
     let bookings = store.getBookingsByTenant(tenantId);
 
-    // Filter by date if provided
+    // Filter by date if provided (interpreted in the tenant's local timezone)
     if (date) {
-      // Match bookings on the requested date
-      bookings = bookings.filter(b => b.scheduledDate.startsWith(date));
+      const tenant = store.getTenant(tenantId);
+      if (!tenant) {
+        throw new Error(`Unknown tenant: ${tenantId}`);
+      }
+      const startOfDay = DateTime.fromISO(date, { zone: tenant.timezone }).startOf('day');
+      const startUtcMs = startOfDay.toMillis();
+      const endUtcMs = startOfDay.plus({ days: 1 }).toMillis();
+      bookings = bookings.filter(b => {
+        const t = new Date(b.scheduledDate).getTime();
+        return t >= startUtcMs && t < endUtcMs;
+      });
     }
 
     // Filter by status if provided
