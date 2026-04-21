@@ -262,7 +262,7 @@ test('POST /api/bookings succeeds for same-tenant pet and sitter', async () => {
       notes: '',
     },
   });
-  assert.equal(res.statusCode, 200);
+  assert.equal(res.statusCode, 201);
   const body = res.json();
   assert.equal(body.success, true);
   assert.equal(body.data.tenantId, 'tenant_portland');
@@ -309,7 +309,7 @@ test('POST /api/bookings detects midnight-wrap overlap on the far side of midnig
       notes: '',
     },
   });
-  assert.equal(seed.statusCode, 200, 'seed wrap booking should be created');
+  assert.equal(seed.statusCode, 201, 'seed wrap booking should be created');
 
   const res = await app.inject({
     method: 'POST',
@@ -353,7 +353,7 @@ test('POST /api/bookings serializes concurrent creates for the same sitter and s
 
     const [r1, r2] = await Promise.all([inject(), inject()]);
     const codes = [r1.statusCode, r2.statusCode].sort();
-    assert.deepEqual(codes, [200, 400], `iteration ${i}: exactly one create should succeed, the other should reject as overlap`);
+    assert.deepEqual(codes, [201, 400], `iteration ${i}: exactly one create should succeed, the other should reject as overlap`);
     const failure = r1.statusCode === 400 ? r1 : r2;
     assert.match(failure.json().error, /overlap/i);
 

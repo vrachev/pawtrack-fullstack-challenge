@@ -37,6 +37,8 @@ Sitters are also customers (if we consider the product to be a 2-sided marketpla
      * Fixed by throwing in `bookingService.createBooking` when the pet or sitter is missing or not in the caller's tenant (single error message to avoid a presence oracle). Also changed the POST /api/bookings error catch to return 400 instead of 200 with `{success:false}`.
 - [✅ Critical] The date filter is a string-prefix match on UTC — `scheduledDate.startsWith(date)`. booking_006 is stored as `2026-04-09T06:30:00Z` (April 8 23:30 PT); filtering for "2026-04-08" misses it and filtering for "2026-04-09" returns it wrongly. The seed even flags this in comments. The filter needs to interpret the date in the tenant's timezone (`Tenant.timezone` already exists).
      * Fixed by computing the filter day's UTC window in the tenant's timezone (via luxon `DateTime.fromISO(date, { zone }).startOf('day')`) and filtering by absolute timestamp. Added luxon as a dependency for robust timezone handling rather than hand-rolled `Intl.DateTimeFormat` offset math.
+- [✅ High] Wrong HTTP status codes in a lot of places.
+     * After fixing the earlier tenant/isolation bugs, two status codes remained wrong: POST /api/bookings returned 200 on success (now 201 Created) and PATCH /api/bookings/:id/status returned 200 on invalid status transitions (now 422 Unprocessable Entity). Other routes were already correct. Updated existing test assertions to match.
 
 
 <!-- For each issue you find, document:

@@ -78,7 +78,7 @@ export function bookingRoutes(app: FastifyInstance): void {
         createdBy: auth.userId,
       });
 
-      return reply.code(200).send({ success: true, data: booking });
+      return reply.code(201).send({ success: true, data: booking });
     } catch (error: any) {
       return reply.code(400).send({ success: false, error: error.message });
     }
@@ -99,6 +99,9 @@ export function bookingRoutes(app: FastifyInstance): void {
     }
 
     const result = await bookingService.updateStatus(id, status, auth.userId);
+    if (!result.success) {
+      return reply.code(422).send(result);
+    }
     return reply.code(200).send(result);
   });
 }
