@@ -98,7 +98,7 @@ export function bookingRoutes(app: FastifyInstance): void {
       return reply.code(404).send({ error: 'Booking not found' });
     }
 
-    const result = bookingService.updateStatus(id, status, auth.userId);
+    const result = await bookingService.updateStatus(id, status, auth.userId);
     return reply.code(200).send(result);
   });
 }

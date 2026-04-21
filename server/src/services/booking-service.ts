@@ -154,46 +154,51 @@ export class BookingService {
 
   /**
    * Update booking status with transition validation.
+   * Per-booking lock is defense-in-depth: today the handler runs fully sync so
+   * concurrent PATCHes serialize naturally, but a future async boundary in the
+   * handler chain would reopen the TOCTOU race invisibly.
    */
-  public updateStatus(
+  public async updateStatus(
     bookingId: string,
     newStatus: BookingStatus,
     changedBy: string,
-  ): { success: boolean; booking?: Booking; error?: string } {
-    const booking = store.getBooking(bookingId);
+  ): Promise<{ success: boolean; booking?: Booking; error?: string }> {
+    return bookingLock.acquire(bookingId, async () => {
+      const booking = store.getBooking(bookingId);
 
-    if (!booking) {
-      return { success: false, error: 'Booking not found' };
-    }
+      if (!booking) {
+        return { success: false, error: 'Booking not found' };
+      }
 
-    const allowedTransitions = VALID_TRANSITIONS[booking.status];
-    if (!allowedTransitions.includes(newStatus)) {
-      return {
-        success: false,
-        error: `Cannot transition from '${booking.status}' to '${newStatus}'`,
+      const allowedTransitions = VALID_TRANSITIONS[booking.status];
+      if (!allowedTransitions.includes(newStatus)) {
+        return {
+          success: false,
+          error: `Cannot transition from '${booking.status}' to '${newStatus}'`,
+        };
+      }
+
+      // Overwrite status — no history kept
+      const updatedBooking: Booking = {
+        ...booking,
+        status: newStatus,
+        updatedAt: new Date().toISOString(),
+        statusChangedAt: new Date().toISOString(),
+        statusChangedBy: changedBy,
       };
-    }
 
-    // Overwrite status — no history kept
-    const updatedBooking: Booking = {
-      ...booking,
-      status: newStatus,
-      updatedAt: new Date().toISOString(),
-      statusChangedAt: new Date().toISOString(),
-      statusChangedBy: changedBy,
-    };
+      store.updateBooking(updatedBooking);
 
-    store.updateBooking(updatedBooking);
+      // Overwrite status and notify listeners
+      eventBus.emit('booking.statusChanged', {
+        bookingId: updatedBooking.id,
+        previousStatus: booking.status,
+        newStatus,
+        changedBy,
+      });
 
-    // Overwrite status and notify listeners
-    eventBus.emit('booking.statusChanged', {
-      bookingId: updatedBooking.id,
-      previousStatus: booking.status,
-      newStatus,
-      changedBy,
+      return { success: true, booking: updatedBooking };
     });
-
-    return { success: true, booking: updatedBooking };
   }
 
   /**
