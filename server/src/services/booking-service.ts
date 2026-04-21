@@ -5,6 +5,18 @@ import { VALID_TRANSITIONS } from '../types/index.js';
 import { store } from '../store/memory-store.js';
 import { eventBus } from './event-emitter.js';
 
+function slotDurationMs(startTime: string, endTime: string): number {
+  const toMin = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const startMin = toMin(startTime);
+  const endMin = toMin(endTime);
+  // endTime < startTime means the slot wraps past midnight.
+  const wrap = endMin < startMin ? 24 * 60 : 0;
+  return (endMin - startMin + wrap) * 60_000;
+}
+
 interface ListBookingsParams {
   tenantId: string;
   page: number;
@@ -85,17 +97,17 @@ export class BookingService {
       throw new Error('Invalid pet or sitter for this tenant');
     }
 
-    // Check for overlapping bookings with the same sitter
-    const existingBookings = store.getAllBookings().filter(
+    // Check for overlapping bookings with the same sitter (absolute UTC timestamps).
+    const existingBookings = store.getBookingsByTenant(tenantId).filter(
       b => b.sitterId === sitterId && b.status !== 'cancelled',
     );
 
-    const hasOverlap = existingBookings.some(b => {
-      const existingStart = new Date(`${b.scheduledDate.split('T')[0]}T${b.startTime}`);
-      const existingEnd = new Date(`${b.scheduledDate.split('T')[0]}T${b.endTime}`);
-      const newStart = new Date(`${scheduledDate.split('T')[0]}T${startTime}`);
-      const newEnd = new Date(`${scheduledDate.split('T')[0]}T${endTime}`);
+    const newStart = new Date(scheduledDate).getTime();
+    const newEnd = newStart + slotDurationMs(startTime, endTime);
 
+    const hasOverlap = existingBookings.some(b => {
+      const existingStart = new Date(b.scheduledDate).getTime();
+      const existingEnd = existingStart + slotDurationMs(b.startTime, b.endTime);
       return newStart < existingEnd && newEnd > existingStart;
     });
 

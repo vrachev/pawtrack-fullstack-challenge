@@ -13,7 +13,8 @@
 - [Critical] Bookings are fetched in a ton of places in the client side app code. There can be scenariors where multiple fetch requests are being processed, and the last one that returns may not be the most recent one. I think this explains the stale bookings bug in the readme.
 - [✅ Critical] In the GET /api/bookings/:id route, we don't check for tenant ownership, which is something we do in the pets API. This means someone can access any booking from across any tenant.
      * Fixed by returning 404 when the booking is missing OR when its tenantId doesn't match auth.tenantId (admins bypass). Uses the same 404 response for both cases to avoid a presence oracle. Also corrects the previous 200-on-miss status bug.
-- [Critical] The hasOverlap check in createBooking is incredibly brittle and broken. It strips out timezone information (b.scheduledDate.split('T')[0] just returns the date), so a user who passes in a scheduledDate with a different timezone to what is in the db will result in potential double bookings.
+- [✅ Critical] The hasOverlap check in createBooking is incredibly brittle and broken. It strips out timezone information (b.scheduledDate.split('T')[0] just returns the date), so a user who passes in a scheduledDate with a different timezone to what is in the db will result in potential double bookings.
+     * Fixed by computing each slot as (absolute start from scheduledDate) + duration derived from startTime/endTime with midnight wrap, so the overlap check uses absolute UTC timestamps. Also scoped the sitter lookup to the caller's tenant (store.getBookingsByTenant).
 - [High] We display a hardcoded tenant/user on the dashboard - el.textContent = `Tenant: PawTrack Portland | User: Staff`
 
 For this issue mentioned in the readme:

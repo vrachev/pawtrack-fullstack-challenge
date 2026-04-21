@@ -269,3 +269,61 @@ test('POST /api/bookings succeeds for same-tenant pet and sitter', async () => {
   assert.equal(body.data.petId, 'pet_001');
   assert.equal(body.data.sitterId, 'sitter_002');
 });
+
+test('POST /api/bookings detects overlap across differing ISO serializations of the same instant', async () => {
+  // booking_006 is sitter_002 on 2026-04-09T06:30:00Z (= 2026-04-08 23:30 PT), 23:30-00:30.
+  // New request is the same real-world window serialized with a -07:00 offset.
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/bookings',
+    headers: { 'x-user-id': 'user_staff_portland' },
+    payload: {
+      petId: 'pet_001',
+      sitterId: 'sitter_002',
+      scheduledDate: '2026-04-08T23:45:00-07:00',
+      startTime: '23:45',
+      endTime: '00:15',
+      notes: '',
+    },
+  });
+  assert.equal(res.statusCode, 400);
+  const body = res.json();
+  assert.equal(body.success, false);
+  assert.match(body.error, /overlap/i);
+});
+
+test('POST /api/bookings detects midnight-wrap overlap on the far side of midnight', async () => {
+  const app = buildTestApp();
+
+  const seed = await app.inject({
+    method: 'POST',
+    url: '/api/bookings',
+    headers: { 'x-user-id': 'user_staff_portland' },
+    payload: {
+      petId: 'pet_001',
+      sitterId: 'sitter_001',
+      scheduledDate: '2027-05-01T23:30:00-07:00',
+      startTime: '23:30',
+      endTime: '00:30',
+      notes: '',
+    },
+  });
+  assert.equal(seed.statusCode, 200, 'seed wrap booking should be created');
+
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/bookings',
+    headers: { 'x-user-id': 'user_staff_portland' },
+    payload: {
+      petId: 'pet_001',
+      sitterId: 'sitter_001',
+      scheduledDate: '2027-05-02T00:00:00-07:00',
+      startTime: '00:00',
+      endTime: '01:00',
+      notes: '',
+    },
+  });
+  assert.equal(res.statusCode, 400, '00:00-01:00 must overlap the 23:30-00:30 wrap');
+  assert.match(res.json().error, /overlap/i);
+});
