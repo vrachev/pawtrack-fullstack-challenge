@@ -23,7 +23,7 @@
 For this issue mentioned in the readme:
 > - **A customer reported seeing another customer's bookings** in the dashboard
 
-The language is ambiguous to me. In my understanding, a customer is a dog owner. But dog owners are not users of the dashboard, only admins, staff and sitters. 
+The language is ambiguous to me. In my understanding, a customer is a pet owner. But pet owners are not users of the dashboard, only admins, staff and sitters. 
 
 Sitters are also customers (if we consider the product to be a 2-sided marketplace), so the bug may be referring to them. The dashboard does not filter by user-id, so all bookings are shown for the tenant, which means a sitter will see the bookings of all other sitters as well.
 
@@ -41,42 +41,58 @@ Sitters are also customers (if we consider the product to be a 2-sided marketpla
      * After fixing the earlier tenant/isolation bugs, two status codes remained wrong: POST /api/bookings returned 200 on success (now 201 Created) and PATCH /api/bookings/:id/status returned 200 on invalid status transitions (now 422 Unprocessable Entity). Other routes were already correct. Updated existing test assertions to match.
 
 
-<!-- For each issue you find, document:
-     - What the issue is and which file it's in
-     - Why it matters (security risk, data integrity, UX impact)
-     - Severity (critical / high / medium / low)
-     - How you fixed it (fill this in during Phase 2) -->
-
 ## API Design
-- Added a new /api/me route. Used for auth testing and for user management.
-<!-- What changes did you make to the API?
-     - Status codes, validation, error responses
-     - Any conventions you followed (REST, JSON:API, RFC 7807)
-     - How would this API evolve for production? -->
+* Added a /api/me route. Used for auth testing and for user management.
+* Added a /api/sitters/available route to enable checking sitter availabilities.
+* Fixed a bunch of incorrect status codes
+* API evolution: rate-limiting, versioning (eg: /v1/), real auth, login flow etc..
 
 ## Architecture Observations
-<!-- What patterns or anti-patterns did you see?
-     - How is business logic organized?
-     - What would you change about the data model or service layer?
-     - How does this map to DDD or clean architecture? -->
+- What patterns or anti-patterns did you see?
+     * There were a lot of anti-patterns, some of which we fixed (like clients being allowed to send in any auth and leaky tenant scopes). Some good patterns were the routes/services split and the EventEmitter which is a useful pattern for things like audit trails or analytics.
+- How is business logic organized?
+     * Split between the routes and the booking-service
+- What would you change about the data model or service layer?
+     * We made one change already with user seeding. The obvious necessary change however is to use a real DB (which also requires schema changes amongst other things)
+- How does this map to DDD or clean architecture?
+     * Current codebase is not very DDD flavored. For example, rules to correctly write/read data live at the service layer instead of at the data layer.
 
 ## Frontend Approach
-<!-- What changes did you make to the frontend?
-     - State management approach
-     - Error handling strategy
-     - Any framework you would use in production and why -->
+- What changes did you make to the frontend?
+     * Changes made: rendered the tenant/user banner from /api/me instead of hardcoding it, and added a sequence guard around fetchBookings so a slow in-flight request can't overwrite a newer one when the user changes filters mid-poll.
+- State management approach
+     * Kept it as a single mutable filters object plus per-render DOM diffs
+- Error handling strategy
+     * Didn't do much here
+- Any framework you would use in production and why
+     * Not much of a frontend expert so I'd have to look further into picking one framework over another, but I'm sure any of React, Svelte, Vue etc.. work just fine.
 
 ## Improvement Implemented
-<!-- Which improvement did you choose to implement and why?
-     Why did you prioritize this one over others? -->
+- Which improvement did you choose to implement and why?
+     * Added a GET /api/sitters/available route. This allows users to see availabilities before trying to book so that they don't have to do trial and error booking.
+     * Over the course of fixing bugs we also added a bunch of tests (for ai agent red/green tdd implementation) and also added the /api/me route + auth derived identity.
+- Why did you prioritize this one over others?
+     * Trial and error booking would be a major UX pain so this felt like a nice improvement.
+
 
 ## Improvements Proposed
-<!-- Describe 2 additional improvements you would make.
-     For each: what, why, estimated effort, and trade-offs. -->
+- Describe 2 additional improvements you would make.
+     * Migrating to a real DB
+     * Self service booking product for pet owners.
+- For each: what, why, estimated effort, and trade-offs.
+     * The DB is kinda self-explanatory. Our current custom store is very brittle, slow, hard to extend and just plain unuseable in production. The change would be pretty significant for this codebase, as we'd have to - - - make big changes to the schema and the services code.
+     * Right now pet owners don't exist as real users, just as metadata for pets. The easiest change would be to create a owner role and allow them to book via the current dashboard, but the better solution would be to create a new frontend tailored to them.
 
 ## AI Usage
-<!-- If you used AI tools, describe:
+- If you used AI tools, describe:
      - Which tools and how you used them
+          * Claude code. I used it to surface issues, to plan out the implementation plans to fix all the bugs, for implementation, for ideation for features to implement, and for implementation for that as well.
      - What you validated or changed from AI suggestions
+          * Validated all issues I pulled from claude. 
+          * Back and forth conversations for all implementation plans.
+          * To give a few specific examples on the latter:
+               * The AI wrote the new /api/sitter/availability code in pets.ts, because that's where the existing sitter route was. I had it move it to its own file.
+               * It handwrote datetime code to fix the overlap issue. I instructed it to use a robust time library since handrolling our own code is very bug prone.
      - What you chose NOT to use AI for and why
-     If you did not use AI tools, simply state that. -->
+          * I only asked it to audit the codebase after I had done so. It's hard to get a good sense of whether the AI is correct or not without getting a good understanding first. And indeed, the AI had some issues trying to interpret the readme. Understanding the code first let me be more confident about the issues claude suggested, and which ones are critical vs not.
+          * I used Claude for a few of the questions in the rest of the sections of this doc (such as to ask about clean architecture, which I had not heard of before), but I wrote all the answers myself as I prefer my own voice over Claude's.
