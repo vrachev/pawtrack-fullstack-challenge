@@ -3,7 +3,8 @@
 ## Audit Findings
 
 ### The below bugs are what I found from looking through the code. I stopped after a while because there are too many, but tried to cover most of the critical ones I saw. After this, I also instruced claude to investigate the codebase and find issues. I've picked some from claude that I think are worth adding here and added them below this list. Claude's audit lives in ./investigations/CLAUDE_AUDIT.md
-- [Critical] There is a race condition with booking creations. Two calls to createBooking can end up both booking the same slot with the sitter (this issue was noted in the readme).
+- [✅ Critical] There is a race condition with booking creations. Two calls to createBooking can end up both booking the same slot with the sitter (this issue was noted in the readme).
+     * Fixed with a per-sitter mutex (async-lock) around the overlap-check + write in createBooking. Acts as an in-memory stand-in for a DB row lock / unique index.
 - [✅ Critical] In the GET /api/bookings route, we allow an admin to override the tenant view, but have no check to determine if the user is actually an admin.
      * Fixed by ignoring ?tenantId= unless auth.role is 'admin'.
 - [✅ Critical] In authMiddleware, any user can assign themselves an admin role, or impersonate another user by using their user-id, or sign into any tenant they want to.

@@ -1,9 +1,12 @@
 import { v4 as uuid } from 'uuid';
 import { DateTime } from 'luxon';
+import AsyncLock from 'async-lock';
 import type { Booking, BookingStatus, PaginatedResult, AuthContext } from '../types/index.js';
 import { VALID_TRANSITIONS } from '../types/index.js';
 import { store } from '../store/memory-store.js';
 import { eventBus } from './event-emitter.js';
+
+const bookingLock = new AsyncLock();
 
 function slotDurationMs(startTime: string, endTime: string): number {
   const toMin = (hhmm: string) => {
@@ -97,54 +100,56 @@ export class BookingService {
       throw new Error('Invalid pet or sitter for this tenant');
     }
 
-    // Check for overlapping bookings with the same sitter (absolute UTC timestamps).
-    const existingBookings = store.getBookingsByTenant(tenantId).filter(
-      b => b.sitterId === sitterId && b.status !== 'cancelled',
-    );
+    // Serialize overlap-check + write per sitter so concurrent creates can't both pass the TOCTOU gap.
+    return bookingLock.acquire(sitterId, async () => {
+      const existingBookings = store.getBookingsByTenant(tenantId).filter(
+        b => b.sitterId === sitterId && b.status !== 'cancelled',
+      );
 
-    const newStart = new Date(scheduledDate).getTime();
-    const newEnd = newStart + slotDurationMs(startTime, endTime);
+      const newStart = new Date(scheduledDate).getTime();
+      const newEnd = newStart + slotDurationMs(startTime, endTime);
 
-    const hasOverlap = existingBookings.some(b => {
-      const existingStart = new Date(b.scheduledDate).getTime();
-      const existingEnd = existingStart + slotDurationMs(b.startTime, b.endTime);
-      return newStart < existingEnd && newEnd > existingStart;
+      const hasOverlap = existingBookings.some(b => {
+        const existingStart = new Date(b.scheduledDate).getTime();
+        const existingEnd = existingStart + slotDurationMs(b.startTime, b.endTime);
+        return newStart < existingEnd && newEnd > existingStart;
+      });
+
+      if (hasOverlap) {
+        throw new Error('Sitter has an overlapping booking for this time slot');
+      }
+
+      // Simulate async operation (like a database write)
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const now = new Date().toISOString();
+      const booking: Booking = {
+        id: `booking_${uuid().slice(0, 8)}`,
+        tenantId,
+        petId,
+        sitterId,
+        status: 'requested',
+        scheduledDate,
+        startTime,
+        endTime,
+        notes,
+        createdAt: now,
+        updatedAt: now,
+        statusChangedAt: now,
+        statusChangedBy: createdBy,
+      };
+
+      store.createBooking(booking);
+
+      eventBus.emit('booking.created', {
+        bookingId: booking.id,
+        tenantId: booking.tenantId,
+        petId: booking.petId,
+        sitterId: booking.sitterId,
+      });
+
+      return booking;
     });
-
-    if (hasOverlap) {
-      throw new Error('Sitter has an overlapping booking for this time slot');
-    }
-
-    // Simulate async operation (like a database write)
-    await new Promise(resolve => setTimeout(resolve, 10));
-
-    const now = new Date().toISOString();
-    const booking: Booking = {
-      id: `booking_${uuid().slice(0, 8)}`,
-      tenantId,
-      petId,
-      sitterId,
-      status: 'requested',
-      scheduledDate,
-      startTime,
-      endTime,
-      notes,
-      createdAt: now,
-      updatedAt: now,
-      statusChangedAt: now,
-      statusChangedBy: createdBy,
-    };
-
-    store.createBooking(booking);
-
-    eventBus.emit('booking.created', {
-      bookingId: booking.id,
-      tenantId: booking.tenantId,
-      petId: booking.petId,
-      sitterId: booking.sitterId,
-    });
-
-    return booking;
   }
 
   /**

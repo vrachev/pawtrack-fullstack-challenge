@@ -327,3 +327,45 @@ test('POST /api/bookings detects midnight-wrap overlap on the far side of midnig
   assert.equal(res.statusCode, 400, '00:00-01:00 must overlap the 23:30-00:30 wrap');
   assert.match(res.json().error, /overlap/i);
 });
+
+test('POST /api/bookings serializes concurrent creates for the same sitter and slot', async () => {
+  // Loop 10x: the race is timer-based, not barrier-enforced. Looping doesn't guarantee we'll catch it,
+  // but good enough for this toy codebase.
+  const payload = {
+    petId: 'pet_001',
+    sitterId: 'sitter_001',
+    scheduledDate: '2027-06-10T14:00:00-07:00',
+    startTime: '14:00',
+    endTime: '15:00',
+    notes: '',
+  };
+
+  for (let i = 0; i < 10; i++) {
+    resetStore();
+    const app = buildTestApp();
+    const inject = () =>
+      app.inject({
+        method: 'POST',
+        url: '/api/bookings',
+        headers: { 'x-user-id': 'user_staff_portland' },
+        payload,
+      });
+
+    const [r1, r2] = await Promise.all([inject(), inject()]);
+    const codes = [r1.statusCode, r2.statusCode].sort();
+    assert.deepEqual(codes, [200, 400], `iteration ${i}: exactly one create should succeed, the other should reject as overlap`);
+    const failure = r1.statusCode === 400 ? r1 : r2;
+    assert.match(failure.json().error, /overlap/i);
+
+    const listRes = await app.inject({
+      method: 'GET',
+      url: '/api/bookings?limit=50',
+      headers: { 'x-user-id': 'user_admin_portland' },
+    });
+    const created = listRes.json().data.filter(
+      (b: { sitterId: string; scheduledDate: string }) =>
+        b.sitterId === 'sitter_001' && b.scheduledDate === payload.scheduledDate,
+    );
+    assert.equal(created.length, 1, `iteration ${i}: store must hold exactly one booking for the contested slot`);
+  }
+});
