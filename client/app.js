@@ -67,7 +67,9 @@ function initFilters() {
 // Fetch and Render Bookings
 // ============================================
 
+let fetchSeq = 0;
 async function fetchBookings(currentFilters) {
+  const mySeq = ++fetchSeq;
   const loadingEl = document.getElementById('loading-indicator');
   const errorEl = document.getElementById('error-message');
   const listEl = document.getElementById('bookings-list');
@@ -86,6 +88,7 @@ async function fetchBookings(currentFilters) {
       headers: AUTH_HEADERS,
     });
     const result = await response.json();
+    if (mySeq !== fetchSeq) return;
 
     loadingEl.style.display = 'none';
 
@@ -98,6 +101,7 @@ async function fetchBookings(currentFilters) {
     renderBookings(result.data, listEl);
     renderPagination(result);
   } catch (err) {
+    if (mySeq !== fetchSeq) return;
     loadingEl.style.display = 'none';
     errorEl.textContent = 'Failed to load bookings. Is the server running?';
     errorEl.style.display = 'block';
