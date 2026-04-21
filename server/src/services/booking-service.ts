@@ -15,6 +15,7 @@ interface ListBookingsParams {
   limit: number;
   date?: string;
   status?: BookingStatus;
+  sitterId?: string;
 }
 
 interface CreateBookingParams {
@@ -34,9 +35,13 @@ export class BookingService {
    * Supports pagination.
    */
   public listBookings(params: ListBookingsParams): PaginatedResult<Booking> {
-    const { tenantId, page, limit, date, status } = params;
+    const { tenantId, page, limit, date, status, sitterId } = params;
 
     let bookings = store.getBookingsByTenant(tenantId);
+
+    if (sitterId) {
+      bookings = bookings.filter(b => b.sitterId === sitterId);
+    }
 
     // Filter by date if provided (interpreted in the tenant's local timezone)
     if (date) {

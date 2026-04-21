@@ -24,12 +24,16 @@ export function bookingRoutes(app: FastifyInstance): void {
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '10', 10);
 
+    // Sitters only see their own bookings; admin/staff see the whole tenant.
+    const sitterId = auth.role === 'sitter' ? auth.userId : undefined;
+
     const result = bookingService.listBookings({
       tenantId,
       page,
       limit,
       date: query.date,
       status: query.status as BookingStatus | undefined,
+      sitterId,
     });
 
     return reply.code(200).send(result);

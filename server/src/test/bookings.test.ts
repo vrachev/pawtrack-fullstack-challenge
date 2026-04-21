@@ -9,11 +9,11 @@ test('GET /api/bookings ignores ?tenantId= for non-admin callers', async () => {
   const res = await app.inject({
     method: 'GET',
     url: '/api/bookings?tenantId=tenant_seattle&limit=50',
-    headers: { 'x-user-id': 'sitter_001' },
+    headers: { 'x-user-id': 'user_staff_portland' },
   });
   assert.equal(res.statusCode, 200);
   const body = res.json();
-  assert.equal(body.total, 10, 'sitter in Portland must see only Portland bookings');
+  assert.equal(body.total, 10, 'staff in Portland must see only Portland bookings');
   for (const b of body.data) {
     assert.equal(b.tenantId, 'tenant_portland');
   }
@@ -39,7 +39,7 @@ test('GET /api/bookings without override returns the caller tenant', async () =>
   const res = await app.inject({
     method: 'GET',
     url: '/api/bookings?limit=50',
-    headers: { 'x-user-id': 'sitter_001' },
+    headers: { 'x-user-id': 'user_staff_portland' },
   });
   assert.equal(res.statusCode, 200);
   const body = res.json();
@@ -47,6 +47,35 @@ test('GET /api/bookings without override returns the caller tenant', async () =>
   for (const b of body.data) {
     assert.equal(b.tenantId, 'tenant_portland');
   }
+});
+
+test('GET /api/bookings scopes a sitter to only their own bookings', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'GET',
+    url: '/api/bookings?limit=50',
+    headers: { 'x-user-id': 'sitter_001' },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json();
+  assert.equal(body.total, 5, 'sitter_001 is assigned to 5 Portland bookings in the seed');
+  for (const b of body.data) {
+    assert.equal(b.sitterId, 'sitter_001');
+    assert.equal(b.tenantId, 'tenant_portland');
+  }
+});
+
+test('GET /api/bookings does not scope staff by userId', async () => {
+  const app = buildTestApp();
+  const res = await app.inject({
+    method: 'GET',
+    url: '/api/bookings?limit=50',
+    headers: { 'x-user-id': 'user_staff_portland' },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json();
+  const sitterIds = new Set(body.data.map((b: { sitterId: string }) => b.sitterId));
+  assert.ok(sitterIds.size > 1, 'staff should see bookings across multiple sitters');
 });
 
 test('GET /api/bookings/:id returns 404 when booking belongs to another tenant', async () => {

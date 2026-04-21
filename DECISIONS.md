@@ -2,7 +2,7 @@
 
 ## Audit Findings
 
-### The below bugs are what I found from looking through the code. I stopped after a while because there are too many, but tried to cover most of the critical ones I saw. After this, I also instruced claude to investigate the codebase and find issues. I've picked some from claude that I think are worth adding here and added them below this list. Claude's audit lives in ./investigations/CLAUDE_AUDIT.md
+### The below bugs are what I found from looking through the code. I stopped after a while because there are too many, but tried to cover most of the critical ones I saw. After this, I also instruced claude to investigate the codebase and find issues. I've picked some from claude that I think are worth adding here and added them below this list. Claude's audit lives in ./investigations/CLAUDE_AUDIT.md. Note that the comments specifying the fixes are from Claude.
 - [✅ Critical] There is a race condition with booking creations. Two calls to createBooking can end up both booking the same slot with the sitter (this issue was noted in the readme).
      * Fixed with a per-sitter mutex (async-lock) around the overlap-check + write in createBooking. Acts as an in-memory stand-in for a DB row lock / unique index.
 - [✅ Critical] In the GET /api/bookings route, we allow an admin to override the tenant view, but have no check to determine if the user is actually an admin.
@@ -27,6 +27,8 @@ The language is ambiguous to me. In my understanding, a customer is a pet owner.
 
 Sitters are also customers (if we consider the product to be a 2-sided marketplace), so the bug may be referring to them. The dashboard does not filter by user-id, so all bookings are shown for the tenant, which means a sitter will see the bookings of all other sitters as well.
 
+- [✅ Critical] Sitters see every booking in their tenant on GET /api/bookings, including ones assigned to other sitters.
+     * Fixed by passing `sitterId: auth.userId` into `bookingService.listBookings` when `auth.role === 'sitter'`. Admins and staff continue to see the full tenant list. Added tests for sitter-scope and for staff-not-scoped; updated two existing tests that used `sitter_001` to exercise tenant-scoping to use `user_staff_portland` so they keep testing tenant isolation orthogonally.
 
 #### Below are issues found by Claude and validated/edited by me. I only added critical ones as there are too many issues to add and fix.
 - [✅ Critical] PATCH /api/bookings/:id/status has no tenant check and no role check. A user in Portland can cancel or complete Seattle's bookings.
