@@ -17,7 +17,8 @@
      * Fixed by returning 404 when the booking is missing OR when its tenantId doesn't match auth.tenantId (admins bypass). Uses the same 404 response for both cases to avoid a presence oracle. Also corrects the previous 200-on-miss status bug.
 - [✅ Critical] The hasOverlap check in createBooking is incredibly brittle and broken. It strips out timezone information (b.scheduledDate.split('T')[0] just returns the date), so a user who passes in a scheduledDate with a different timezone to what is in the db will result in potential double bookings.
      * Fixed by computing each slot as (absolute start from scheduledDate) + duration derived from startTime/endTime with midnight wrap, so the overlap check uses absolute UTC timestamps. Also scoped the sitter lookup to the caller's tenant (store.getBookingsByTenant).
-- [High] We display a hardcoded tenant/user on the dashboard - el.textContent = `Tenant: PawTrack Portland | User: Staff`
+- [✅ High] We display a hardcoded tenant/user on the dashboard - el.textContent = `Tenant: PawTrack Portland | User: Staff`
+     * Fixed by fetching GET /api/me on load and rendering the real tenantName / userId / role.
 
 For this issue mentioned in the readme:
 > - **A customer reported seeing another customer's bookings** in the dashboard

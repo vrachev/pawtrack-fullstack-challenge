@@ -5,7 +5,7 @@ const API_BASE = 'http://localhost:3001';
 
 // Simulated auth context — in production this would come from a login flow
 const AUTH_HEADERS = {
-  'X-User-Id': 'user_admin_austin',
+  'X-User-Id': 'user_admin_portland',
   'Content-Type': 'application/json',
 };
 
@@ -33,9 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 15000);
 });
 
-function initTenantInfo() {
+async function initTenantInfo() {
   const el = document.getElementById('tenant-info');
-  el.textContent = `Tenant: PawTrack Portland | User: Staff`;
+  try {
+    const response = await fetch(`${API_BASE}/api/me`, { headers: AUTH_HEADERS });
+    const me = await response.json();
+    el.textContent = `Tenant: ${me.tenantName} | User: ${me.userId} (${me.role})`;
+  } catch (err) {
+    el.textContent = 'Tenant: — | User: —';
+  }
 }
 
 // ============================================
