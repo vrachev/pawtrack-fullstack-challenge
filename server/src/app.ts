@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import { authMiddleware } from './middleware/auth.js';
 import { bookingRoutes } from './routes/bookings.js';
 import { petRoutes } from './routes/pets.js';
+import { sitterRoutes } from './routes/sitters.js';
 import { meRoutes } from './routes/me.js';
 
 export function buildApp(opts: { logger?: boolean } = {}): FastifyInstance {
@@ -26,6 +27,7 @@ export function buildApp(opts: { logger?: boolean } = {}): FastifyInstance {
 
   bookingRoutes(app);
   petRoutes(app);
+  sitterRoutes(app);
   meRoutes(app);
 
   return app;

@@ -25,11 +25,13 @@ pawtrack-fullstack-challenge/
       index.ts                  # Fastify app entry point
       routes/
         bookings.ts             # Booking CRUD + status transitions
-        pets.ts                 # Pet and sitter lookup endpoints
+        pets.ts                 # Pet lookup endpoints
+        sitters.ts              # Sitter list + availability search
       middleware/
         auth.ts                 # Tenant/user extraction from headers
       services/
         booking-service.ts      # Business logic layer
+        overlap.ts              # Slot-overlap primitives (midnight-aware)
         event-emitter.ts        # Simple event bus
       store/
         memory-store.ts         # In-memory data store (simulates database)
@@ -79,6 +81,11 @@ curl -H "X-User-Id: user_staff_portland" \
 # List pets
 curl -H "X-User-Id: user_staff_portland" \
   http://localhost:3001/api/pets
+
+# Find sitters available for a given slot (returns sitters with no
+# overlapping non-cancelled booking, sorted alphabetically by name)
+curl -H "X-User-Id: user_staff_portland" \
+  'http://localhost:3001/api/sitters/available?scheduledDate=2026-04-10T14:00:00-07:00&startTime=14:00&endTime=15:00'
 ```
 
 ## The Three Phases

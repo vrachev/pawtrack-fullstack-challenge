@@ -5,20 +5,9 @@ import type { Booking, BookingStatus, PaginatedResult, AuthContext } from '../ty
 import { VALID_TRANSITIONS } from '../types/index.js';
 import { store } from '../store/memory-store.js';
 import { eventBus } from './event-emitter.js';
+import { slotsOverlap } from './overlap.js';
 
 const bookingLock = new AsyncLock();
-
-function slotDurationMs(startTime: string, endTime: string): number {
-  const toMin = (hhmm: string) => {
-    const [h, m] = hhmm.split(':').map(Number);
-    return h * 60 + m;
-  };
-  const startMin = toMin(startTime);
-  const endMin = toMin(endTime);
-  // endTime < startTime means the slot wraps past midnight.
-  const wrap = endMin < startMin ? 24 * 60 : 0;
-  return (endMin - startMin + wrap) * 60_000;
-}
 
 interface ListBookingsParams {
   tenantId: string;
@@ -106,14 +95,8 @@ export class BookingService {
         b => b.sitterId === sitterId && b.status !== 'cancelled',
       );
 
-      const newStart = new Date(scheduledDate).getTime();
-      const newEnd = newStart + slotDurationMs(startTime, endTime);
-
-      const hasOverlap = existingBookings.some(b => {
-        const existingStart = new Date(b.scheduledDate).getTime();
-        const existingEnd = existingStart + slotDurationMs(b.startTime, b.endTime);
-        return newStart < existingEnd && newEnd > existingStart;
-      });
+      const requested = { scheduledDate, startTime, endTime };
+      const hasOverlap = existingBookings.some(b => slotsOverlap(requested, b));
 
       if (hasOverlap) {
         throw new Error('Sitter has an overlapping booking for this time slot');

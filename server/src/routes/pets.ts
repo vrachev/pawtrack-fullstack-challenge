@@ -33,14 +33,4 @@ export function petRoutes(app: FastifyInstance): void {
 
     return reply.code(200).send({ data: pet });
   });
-
-  /**
-   * GET /api/sitters
-   * List all sitters for the authenticated tenant.
-   */
-  app.get('/api/sitters', async (request: FastifyRequest, reply: FastifyReply) => {
-    const auth = (request as any).auth as AuthContext;
-    const sitters = store.getSittersByTenant(auth.tenantId);
-    return reply.code(200).send({ data: sitters });
-  });
 }
